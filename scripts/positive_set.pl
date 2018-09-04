@@ -106,20 +106,20 @@ sub create_positive_file {
 
 	my $ORF_positive = {};
 
-    my $count = 0;
-	my $blast_rpt = $work_dir."tmp/positive_set.bls";
-	my $search = `which usearch 2>&1`;
-    my $ublast_cmd = "";
-	chomp($search);
-	if ($search =~ /^which: no/) {
-		$ublast_cmd = $script_dir."/bin/usearch -ublast $positive_fasta -db $blastdb -id $identity -evalue $evalue -maxhits 1 -blast6out $blast_rpt -threads $threads 2> /dev/null";
-	} else {
-		$ublast_cmd = "usearch -ublast $positive_fasta -db $blastdb -id $identity -evalue $evalue -maxhits 1 -blast6out $blast_rpt -threads $threads 2> /dev/null";
-	}
+  my $makeblastdb_cmd = "makeblastdb -in $blastdb -dbtype prot >/dev/null" 
 
-    system($ublast_cmd) == 0 
-        or die ("Error running -ublast search. Please ensure USEARCH is properly installed\n");
-    
+  system($maskeblastdb_cmd) == 0
+      or die ("Error running makeblastdb. Please ensure BLAST is properly installed\n");
+
+  my $count = 0;
+	my $blast_rpt = $work_dir."tmp/positive_set.bls";
+
+  my $blastp_cmd = "blastp -query $positive_fasta -db $blastdb -evalue $evalue -max_target_seqs 1 -outfmt 6 -out $blast_rpt -num_threads $threads 2>/dev/null";
+
+  system($blastp_cmd) == 0 
+      or die ("Error running blastp search. Please ensure BLAST is properly installed\n");
+
+  
 	# GTF file
 	open (G, ">".$positive_set_gtf) or die "Error creating file $positive_set_gtf\n";
 	print G "#!positive set gtf file\n";
