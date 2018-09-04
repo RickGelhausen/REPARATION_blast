@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 #####################################
 ##	REPARARTION: Ribosome Profiling Assisted (Re-) Annotation of Bacterial genomes

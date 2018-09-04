@@ -1,3 +1,5 @@
+#!/usr/bin/env python2.7
+
 #####################################
 ##	REPARARTION: Ribosome Profiling Assisted (Re-) Annotation of Bacterial genomes
 ##
