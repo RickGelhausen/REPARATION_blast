@@ -20,6 +20,10 @@
 ##
 ##	contact: elvis.ndah@gmail.com
 #####################################
+##
+##  Changed usearch -ublast to blastp | Rick Gelhausen gelhausr@informatik.uni-freiburg.de
+##
+#####################################
 
 use strict;
 use warnings;
@@ -113,13 +117,19 @@ sub create_positive_file {
 
   my $count = 0;
 	my $blast_rpt = $work_dir."tmp/positive_set.bls";
+  my $blast_rpt_tmp = $work_dir."tmp/positive_set_unprocessed.bls";
 
-  my $blastp_cmd = "blastp -query $positive_fasta -db $blastdb -evalue $evalue -max_target_seqs 1 -outfmt 6 -out $blast_rpt -num_threads $threads 2>/dev/null";
+  my $blastp_cmd = "blastp -query $positive_fasta -db $blastdb -evalue $evalue -max_target_seqs 1 -outfmt 6 -out $blast_rpt_tmp -num_threads $threads 2>/dev/null";
 
   system($blastp_cmd) == 0 
       or die ("Error running blastp search. Please ensure BLAST is properly installed\n");
 
-  
+  # Remove lines under identity threshold
+  $identity = $identity * 100;
+  my $awk_cmd = "awk '(\$3 > $identity ) ' $blast_rpt_tmp > $blast_rpt";
+  system($awk_cmd) == 0
+      or die ("Error running awk command. Please ensure that BLAST created an output file!\n");
+
 	# GTF file
 	open (G, ">".$positive_set_gtf) or die "Error creating file $positive_set_gtf\n";
 	print G "#!positive set gtf file\n";

@@ -1,5 +1,4 @@
-#!/usr/bin/env python2.7
-
+#!/usr/bin/env python3
 #####################################
 ##	REPARARTION: Ribosome Profiling Assisted (Re-) Annotation of Bacterial genomes
 ##
@@ -133,9 +132,9 @@ def process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outpu
                     #print str(five_prime_end) + " processed " + str(ribo_position)
 
                     strand = '+'
-                    if read_table.has_key(chromosome):
-                        if read_table[chromosome].has_key(ribo_position):
-                            if read_table[chromosome][ribo_position].has_key(strand):
+                    if chromosome in read_table:
+                        if ribo_position in read_table[chromosome]:
+                            if strand in read_table[chromosome][ribo_position]:
                                 read_table[chromosome][ribo_position][strand] += 1
                             else:
                                 read_table[chromosome][ribo_position][strand] = 1
@@ -187,9 +186,9 @@ def process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outpu
                         ribo_position = five_prime_end - offset[str(length)]
 
                     strand = '-'
-                    if read_table.has_key(chromosome):
-                        if read_table[chromosome].has_key(ribo_position):
-                            if read_table[chromosome][ribo_position].has_key(strand):
+                    if chromosome in read_table:
+                        if ribo_position in read_table[chromosome]:
+                            if  strand in read_table[chromosome][ribo_position]:
                                 read_table[chromosome][ribo_position][strand] += 1
                             else:
                                 read_table[chromosome][ribo_position][strand] = 1
@@ -206,8 +205,8 @@ def process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outpu
 
         line = inFile.readline()
 
-    print "Total number of mappable reads " + str(count_reads)
-    print "Total number of unmapped reads " + str(count_unmapped)
+    print("Total number of mappable reads " + str(count_reads))
+    print("Total number of unmapped reads " + str(count_unmapped))
 
 	# create bedgraph Sense
     headerS = 'track type=bedGraph name=\"' + prefix_S + '" description="" visibility=full color=0,0,255 priority=20'
@@ -223,7 +222,7 @@ def process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outpu
     table = open(occupancyFile, 'w')
     table.write('mappable_reads:'+ str(count_reads) + '\n')
     for contig in read_table:
-        for start in sorted(read_table[contig].iterkeys()):
+        for start in sorted(read_table[contig].keys()):
             for strand in read_table[contig][start]:
                 line = [contig ,str(start), str(strand),str(read_table[contig][start][strand])]
                 table.write('\t'.join(line) + '\n')
@@ -253,6 +252,5 @@ if __name__=='__main__':
     inFile_offset = str(sys.argv[10])	# plastid estimated offset files
 
     process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outputFileAS,occupancyFile,prefix_S,prefix_AS,inFile_offset)
-
 
 
