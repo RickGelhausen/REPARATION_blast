@@ -110,9 +110,10 @@ sub create_positive_file {
 
 	my $ORF_positive = {};
 
-  my $makeblastdb_cmd = "makeblastdb -in $blastdb -dbtype prot >/dev/null" 
+  my $makeblastdb_cmd = "makeblastdb -in $blastdb -dbtype prot >/dev/null"; 
 
-  system($maskeblastdb_cmd) == 0
+  print "Creating database using makeblastdb...\n";
+  system($makeblastdb_cmd) == 0
       or die ("Error running makeblastdb. Please ensure BLAST is properly installed\n");
 
   my $count = 0;
@@ -121,10 +122,12 @@ sub create_positive_file {
 
   my $blastp_cmd = "blastp -query $positive_fasta -db $blastdb -evalue $evalue -max_target_seqs 1 -outfmt 6 -out $blast_rpt_tmp -num_threads $threads 2>/dev/null";
 
+  print "Generating positive_set_unprocessed.bls using blastp...\n";
   system($blastp_cmd) == 0 
       or die ("Error running blastp search. Please ensure BLAST is properly installed\n");
 
   # Remove lines under identity threshold
+  print "Removing values below identity threshold...\n";
   $identity = $identity * 100;
   my $awk_cmd = "awk '(\$3 > $identity ) ' $blast_rpt_tmp > $blast_rpt";
   system($awk_cmd) == 0
@@ -156,10 +159,10 @@ sub create_positive_file {
 
 		my $length = $stop - $start + 1;
 
-        # ensure only valid ORFs are in positive set
+    # ensure only valid ORFs are in positive set
 		if (exists $positive_codons->{$start_codon} and $perc_ident >= $identity and $length >= $MINORF) {
 
-            $count++;
+      $count++;
 
 			($query_id) = $query_id =~ /^(.*)#/;
 			print OUT "$query_id\t$strand\t$start_codon\n";
