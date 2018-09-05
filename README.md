@@ -1,7 +1,6 @@
 # CHANGES TO REPARATION
 
-I replaced the commericial [usearch --ublast tool](https://www.drive5.com/usearch/) by the open-source [blast tool](https://blast.ncbi.nlm.nih.gov/Blast.cgi). The introduction of blast increases the runtime of reparation. 
-But it allows me to add reparation_blast to bioconda for easy use in conda environments (without licensing issues).
+I replaced the commericial [usearch --ublast tool](https://www.drive5.com/usearch/) by the open-source [blast tool](https://blast.ncbi.nlm.nih.gov/Blast.cgi). The introduction of blast increases the runtime of reparation, but it allows me to add reparation_blast to bioconda for easy use in conda environments (without licensing issues).
 
 Further, I upgraded the python script from python2.7 to python3.6+.
 
