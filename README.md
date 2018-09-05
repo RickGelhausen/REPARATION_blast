@@ -1,8 +1,9 @@
-# UNDER CONSTRUCTION
 # CHANGES TO REPARATION
 
 I replaced the commericial [usearch --ublast tool](https://www.drive5.com/usearch/) by the open-source [blast tool](https://blast.ncbi.nlm.nih.gov/Blast.cgi). This allows me to add reparation_blast to bioconda for easy use in conda environments.
+Further, I upgraded the python script from python2.7 to python3.6+.
 
+The introduction of blast increases the runtime of reparation.
 
 # REPARATION
 REPARATION (Ribosome Profiling Assisted (Re-)Annotation of Bacterial genomes) is a pipeline that uses ribosome profiling data for a de novo open reading frame delineation in prokaryotic (bacterial) genomes.
@@ -30,7 +31,7 @@ REPARATION was developed and tested on a Linux system.
 
 # Requirements
 
-The REPARATION software is primarily written in perl, python2.7 and R. For each dataset the complete REPARATION workflow (from the sam files to final results) takes under 90 minutes.
+The REPARATION software is primarily written in perl, (NOW PYTHON3.6) and R. For each dataset the complete REPARATION workflow (from the sam files to final results) takes under 90 minutes.
 REAPARATION is dependant on a set of tool binaries which should all be installed on your system before the pipeline can execute all of its commands.
 
 	Perl packages:
