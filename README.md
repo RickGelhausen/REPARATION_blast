@@ -1,9 +1,10 @@
 # CHANGES TO REPARATION
 
-I replaced the commericial [usearch --ublast tool](https://www.drive5.com/usearch/) by the open-source [blast tool](https://blast.ncbi.nlm.nih.gov/Blast.cgi). This allows me to add reparation_blast to bioconda for easy use in conda environments.
+I replaced the commericial [usearch --ublast tool](https://www.drive5.com/usearch/) by the open-source [blast tool](https://blast.ncbi.nlm.nih.gov/Blast.cgi). The introduction of blast increases the runtime of reparation. 
+But it allows me to add reparation_blast to bioconda for easy use in conda environments (without licensing issues).
+
 Further, I upgraded the python script from python2.7 to python3.6+.
 
-The introduction of blast increases the runtime of reparation.
 
 # REPARATION
 REPARATION (Ribosome Profiling Assisted (Re-)Annotation of Bacterial genomes) is a pipeline that uses ribosome profiling data for a de novo open reading frame delineation in prokaryotic (bacterial) genomes.
