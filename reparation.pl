@@ -25,11 +25,12 @@ use strict;
 use warnings;
 use diagnostics;
 
-use Getopt::Long;
+use Getopt::Long qw< :config auto_version >;
 use Cwd;
 use File::stat;
 use File::Basename;
 
+$main::VERSION = "1.0.1";
 my $startRun = time();	# track processing time
 
 
@@ -144,8 +145,8 @@ GetOptions(
 	'fa=s'=>\$predicted_ORFs_fasta,
 	'ps=s'=>\$plastid_image,
 	'gcode=i'=>\$genetic_code,
-    'by=s' => \$seedBYpass,
-    'score=f' =>\$score
+  'by=s' => \$seedBYpass,
+  'score=f' =>\$score
 );
 
 
