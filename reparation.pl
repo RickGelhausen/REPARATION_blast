@@ -148,6 +148,7 @@ GetOptions(
   'by=s'=>\$seedBYpass,
   'score=f'=>\$score,
 	'out=s'=>\$output_folder,
+	'threads=i'=>\$threads,
 	'h|help|?'=>\$help
 ) or pod2usage(-verbose => 0);
 pod2usage(-verbose => 1) if $help;
