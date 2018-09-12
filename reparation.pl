@@ -9,7 +9,7 @@
 ##	it under the terms of the GNU General Public License as published by
 ##	the Free Software Foundation, either version 3 of the License, or
 ##	(at your option) any later version.
-##	
+##
 ##	This program is distributed in the hope that it will be useful,
 ##	but WITHOUT ANY WARRANTY; without even the implied warranty of
 ##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,6 +26,7 @@ use warnings;
 use diagnostics;
 
 use Getopt::Long qw< :config auto_version >;
+use Pod::Usage;
 use Cwd;
 use File::stat;
 use File::Basename;
@@ -38,13 +39,12 @@ my $startRun = time();	# track processing time
 ##	Usage: ./reparation.pl -sam riboseq_alignment_files_sam_format -g bacteria_genome_fasta_file -sdir scripts_directory -db curated_protein_db(fasta)
 ########################
 
-
 #----------------------------------------------------
 #			VARIBLES
 #----------------------------------------------------
 
 
-my %translationHash = 
+my %translationHash =
 	(GCA => "A", GCG => "A", GCT => "A", GCC => "A",
      TGC => "C", TGT => "C",
      GAT => "D", GAC => "D",
@@ -101,7 +101,7 @@ my $start_codon_pset;		# Start codon for the positive set. Defualts to start cod
 my $genetic_code = 11;		# the genetic code [1-25] that determines the allowed start codons
 my $seedBYpass = "N";       # Bypass Shine-Dalgarno trainer and force a full motif scan (default = N(o)). Valid only for -pg 1
 my $score = 0.5;           # Random forest classifier threshold to classify ORF as protein copding (defualt is 0.5).
-
+my $output_folder = "reparation"; # Name of the output folder for the results.
 
 # Output files
 my $bedgraphS;
@@ -111,7 +111,7 @@ my $predicted_ORFs_bed;
 my $predicted_ORFs_fasta;
 my $plastid_image;
 
-
+my $help = 0;
 
 # Get command line arguments
 GetOptions(
@@ -145,10 +145,12 @@ GetOptions(
 	'fa=s'=>\$predicted_ORFs_fasta,
 	'ps=s'=>\$plastid_image,
 	'gcode=i'=>\$genetic_code,
-  'by=s' => \$seedBYpass,
-  'score=f' =>\$score
-);
-
+  'by=s'=>\$seedBYpass,
+  'score=f'=>\$score,
+	'out=s'=>\$output_folder,
+	'h|help|?'=>\$help
+) or pod2usage(-verbose => 0);
+pod2usage(-verbose => 1) if $help;
 
 #----------------------------------------------------
 #	Evaluate input variables
@@ -163,7 +165,7 @@ my %params = (
 );
 
 
-my @invalid = grep uninitialized_param($params{$_}), keys %params;	
+my @invalid = grep uninitialized_param($params{$_}), keys %params;
 die "Not properly initialized: @invalid\n" if @invalid;
 
 
@@ -356,14 +358,14 @@ if ($occupancy == 1) {
 		print "Could not locate ' psite '. Please ensure the plastid python package is installed.\n";
 		exit(1);
 	}
-		
+
 	my $search_metagene = `which metagene 2>&1`;
 	chomp($search_metagene);
 	if ($search_metagene =~ /^which: no/) {
 		print "Could not locate ' metagene '. Please ensure the plastid python package is installed.\n";
 		exit(1);
 	}
-	
+
 	# find p-site offsets
     $psite_offset_file = generate_p_site($positive_set_gtf,$sam_file,$min_read_len,$max_read_len);
 }
@@ -453,26 +455,26 @@ sub generate_p_site {
     my $run_name = $work_dir."/tmp/plastid";
     my $bam = $work_dir."/tmp/ribo_bam.bam";
     my $sort_tmp_file = $work_dir."/tmp/check_sort.txt";
-    
+
     my $cmd_sam2bam = "samtools view -bS $sam | samtools sort -o $bam";
-    system($cmd_sam2bam) == 0 
+    system($cmd_sam2bam) == 0
         or die ("Error running samtools. Please ensure the samtools is properly installed\n");
 
     my $command_index = "samtools index ".$bam;
-    system($command_index) == 0 
+    system($command_index) == 0
         or die ("Error running samtools. Please ensure the samtools is properly installed\n");
-    
+
     #Build command
     my $command_meta = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf." 2> /dev/null";
     print "$command_meta\n";
-    system($command_meta) == 0 
+    system($command_meta) == 0
         or die ("Error running metagene. Please ensure the Plastid tool is properly installed\n");
 
     #Build command
     my $psitefile = $run_name."_rois.txt";
     my $command_psite = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam." 2> /dev/null";
     print "$command_psite\n";
-    system($command_psite)  == 0 
+    system($command_psite)  == 0
         or die ("Error running psite. Please ensure the Plastid tool is properly installed\n");
 
     my $psite_off_output = $work_dir."/".$experiment."p_site_offsets.txt";
@@ -529,13 +531,13 @@ sub check_working_dir {
 		}
 	} else {
 		$work_dir = getcwd();
-		$work_dir = $work_dir."/".$experiment."reparation_".$months[$mon].$mday;
+		$work_dir = $work_dir."/".$experiment.$output_folder;
 		$tmp_dir = $work_dir."/tmp";
 
 		if (!-d $work_dir) {
 			system("mkdir -p $work_dir");
 			system("mkdir -p $tmp_dir");
-		} 
+		}
 	}
 
 	$work_dir = $work_dir."/";
@@ -549,10 +551,140 @@ sub uninitialized_param {
 	not ( defined($v) and length $v );
 }
 
-
 sub timer {
 	my $startRun = shift;
 	my $endRun 	= time();
 	my $runTime = $endRun - $startRun;
 	printf("\nTotal running time: %02d:%02d:%02d\n\n", int($runTime / 3600), int(($runTime  % 3600) / 60), int($runTime % 60));
 }
+
+__END__
+
+=head1 NAME
+
+reparation - Ribosome Profiling Assisted (Re-)Annotation of Bacterial genomes.
+
+=head1 SYNOPSIS
+
+reparation.pl [options] -sam riboseq_alignment_files_sam_format -g bacteria_genome_fasta_file -sdir scripts_directory -db curated_protein_db(fasta)
+
+=head1 OPTIONS
+
+=over
+
+=head2 Mandatory
+
+=item B<-sam>
+
+Ribosome alignment file (sam)
+
+=item B<-g>
+
+Genome fasta file. This should be the same genome fasta file used in the alignment of the Ribo-seq reads.
+
+=item B<-sdir>
+
+The "scripts" directory (avialable within the REPARATION directory), defaults to directory of reparation.pl script
+
+=item B<-db>
+
+fasta database of curated bacteria protein sequences
+
+=head2 Optional
+
+=item B<-gtf>
+
+GTF genome annotation file
+
+=item B<-wdir>
+
+working directory (defaults to current directory)
+
+=item B<-en>
+
+Experiment name
+
+=item B<-p>
+
+Ribosome profiling read p site assignment strategy, 1 = plastid P-site estimation ((default), 3 = 3 prime of read, 5 prime of the read
+
+=item B<-mn>
+
+All ribosome profiling reads shorter than these values are eliminated from the ananlysis (default = 22)
+
+=item B<-mx>
+
+All ribosome profiling reads longerer than these values are eliminated from the ananlysis (default = 40)
+
+=item B<-mo>
+
+Minimum length of open reading frame considered for prediction (default = 30 value in nucleotides)
+
+=item B<-mr>
+
+Open reading frames with less than these number of ribosome profiling reads are eliminated from analysis (default = 3)
+
+=item B<-ost>
+
+Start region length in nucleotides (default = 45nts). This value is used to calculate features specific to the start region.
+
+=item B<-osp>
+
+Stop region length in nucleotides (default = 21nts). This value is used to calculate features specific to the stop region.
+
+=item B<-osd>
+
+Distance of Shine dalgarno sequence from start codon (defualt = 5nts).
+
+=item B<-seed>
+
+Shine dalgarno sequence (default = GGAGG). The shine dalgarno sequence used for Ribosome binind site energy calculation.
+
+=item B<-sd>
+
+Use ribosome binding site (RBS) energy in the open reading frame prediction (Y = use RBS energy (default), N = donot use RBS engergy)
+
+=item B<-id>
+
+Minimum identify score for BLAST protein sequence search (default = 0.75)
+
+=item B<-ev>
+
+maximum e-vlaue for BLAST protein sequence search (default = 1e-5)
+
+=item B<-pg>
+
+program for initial positive set generation (1 = prodigal (default), 2 = glimmer)
+
+=item B<-cdn>
+
+Comma separted list of start codons (default = ATG,GTG,TTG)
+
+=item B<-ncdn>
+
+Start codon for negative set (default = CTG)
+
+=item B<-pcdn>
+
+Start codon for positive set (default = ATG,GTG,TTG). Should be a subset of the standard genetic code for bacteria
+
+=item B<-gcode>
+
+Genetic code to use for initail positive set generation. Valid when -pg is 1. (default = 11, takes value between 1-25)
+
+=item B<-by>
+
+Flag to determine if prodigal should bypass Shine-Dalgarno trainer and force a full motif scan (default = N). (Y = yes, N = no) Valid only for -pg 1
+
+=item B<-score>
+
+Random forest classification probability score threshold to define as ORF are protein coding, the minimum  (defualt is 0.5)
+
+=back
+
+=head1 DESCRIPTION
+
+B<This program> will read the given input file(s) and do something
+useful with the contents thereof.
+
+=cut
