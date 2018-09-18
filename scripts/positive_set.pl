@@ -9,7 +9,7 @@
 ##	it under the terms of the GNU General Public License as published by
 ##	the Free Software Foundation, either version 3 of the License, or
 ##	(at your option) any later version.
-##	
+##
 ##	This program is distributed in the hope that it will be useful,
 ##	but WITHOUT ANY WARRANTY; without even the implied warranty of
 ##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -41,7 +41,7 @@ my $MIN_POS_SEQ = 200;      # minimum number of requence required in the positiv
 #			EXECUTION
 #----------------------------------------------------
 
-my %translationHash = 
+my %translationHash =
 	(GCA => "A", GCG => "A", GCT => "A", GCC => "A", GCN => "A",
      TGC => "C", TGT => "C",
      GAT => "D", GAC => "D",
@@ -79,16 +79,16 @@ foreach my $codon(@pcodons) {
 # read genome fasta file
 my $genomes = read_fasta($genome);
 
-# generate positive set 
+# generate positive set
 my $positive_set_gtf = $work_dir."/tmp/positive.gtf";
-if ($pgm == 1) { 
+if ($pgm == 1) {
 	# postive set generated with prodigal
 	print "Generating positive samples training set using Prodigal...\n";
 	my $positive_fasta = generate_prodigal_ORFs();
 	create_positive_file($positive_set,$positive_fasta);
 	print "Set of Positive examples created.\n";
 
-} elsif ($pgm == 2) { 
+} elsif ($pgm == 2) {
 	# postive set generated with Glimmer
 	print "Generating positive samples training set using glimmer...\n";
 	my $positive_fasta = generate_glimmer_ORFs();
@@ -110,7 +110,7 @@ sub create_positive_file {
 
 	my $ORF_positive = {};
 
-  my $makeblastdb_cmd = "makeblastdb -in $blastdb -dbtype prot >/dev/null"; 
+  my $makeblastdb_cmd = "makeblastdb -in $blastdb -dbtype prot >/dev/null";
 
   print "Creating database using makeblastdb...\n";
   system($makeblastdb_cmd) == 0
@@ -123,7 +123,7 @@ sub create_positive_file {
   my $blastp_cmd = "blastp -query $positive_fasta -db $blastdb -evalue $evalue -max_target_seqs 1 -outfmt 6 -out $blast_rpt_tmp -num_threads $threads 2>/dev/null";
 
   print "Generating positive_set_unprocessed.bls using blastp...\n";
-  system($blastp_cmd) == 0 
+  system($blastp_cmd) == 0
       or die ("Error running blastp search. Please ensure BLAST is properly installed\n");
 
   # Remove lines under identity threshold
@@ -200,25 +200,25 @@ sub create_positive_file {
 
 # prodigal positive
 sub generate_prodigal_ORFs {
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
 
 	my $positive_gff = $work_dir.'tmp/positive_set.gff';
 
 	my $search = `which prodigal 2>&1`;
 	chomp($search);
 
-    my $prodigal_cmd = "";
-	if ($search =~ /^which: no/) {
-		$prodigal_cmd = $script_dir."/bin/prodigal -i $genome -f gff -o $positive_gff -g $genetic_code -q 2> /dev/null";
-	} else {
-		$prodigal_cmd = "prodigal -i $genome -f gff -o $positive_gff  -g $genetic_code -q 2> /dev/null";
-	}
+	my $logs_dir = $work_dir."/logs";
+	system("mkdir -p $logs_dir");
 
-    if ($seedBYpass eq "Y") {$prodigal_cmd = $prodigal_cmd." -n"}
+	my $logs_out = $work_dir."/logs/prodigal$min$hour$mday$mon$year.log";
+	my $prodigal_cmd = "prodigal -i $genome -f gff -o $positive_gff  -g $genetic_code -q 2> $logs_out";
 
-    system($prodigal_cmd) == 0 
-        or die ("Error running prodigal. Please ensure prodigal is properly installed\n");
-    
-    my $count = 0;
+  if ($seedBYpass eq "Y") {$prodigal_cmd = $prodigal_cmd." -n"}
+
+  system($prodigal_cmd) == 0
+      or die ("Error running prodigal.\n".$!);
+
+  my $count = 0;
 	my $positive_fasta = $work_dir.'tmp/positive_set.fasta';
 	open (OUT, ">".$positive_fasta) or die "error creating file $positive_fasta\n";
 	open (IN, $positive_gff) or die "Error reading file: $positive_gff\n";
@@ -233,7 +233,7 @@ sub generate_prodigal_ORFs {
 		my $start = ($strand eq '+') ? $line[3]: $line[3] + 3;
 		my $stop = ($strand eq '+') ? $line[4] - 3: $line[4];
 		my $orf = $region.":".$start."-".$stop;
-		
+
 		my ($aa_seq, $start_codon) = translate($start,$stop,$strand,$region);
         next unless ($aa_seq);
 
@@ -274,12 +274,12 @@ sub generate_glimmer_ORFs {
 		$glimmer_cmd = "glimmer3 $genome $glimmer_icm $positive_predict -A $start_cdns -g $MINORF 2> /dev/null";
 	}
 
-    system($build_cmd) == 0 
+    system($build_cmd) == 0
         or die ("Error running build-icm tool. Please ensure gglimmer build-icm tool is properly installed\n");
-    
-    system($glimmer_cmd) == 0 
+
+    system($glimmer_cmd) == 0
         or die ("Error running glimmer3. Please ensure glimmer3 is properly installed\n");
-    
+
 
     my $count = 0;
 	my $positive_fasta = $work_dir."/tmp/positive_set.fasta";
@@ -338,7 +338,7 @@ sub translate {
 		last if ($codon eq '*');
         my $aa = $translationHash{$codon};
 
-        # if amino acid doesn't exist then 
+        # if amino acid doesn't exist then
         unless ($aa) {$aa_seq = ""; last}
 		$aa_seq = $aa_seq.$aa;
 	}
@@ -362,7 +362,7 @@ sub read_fasta {
 
 	my $in  = Bio::SeqIO->new(-file => $file, -format => "fasta");
 	while(my $seqs = $in->next_seq) {
-		my $id  = $seqs->display_id;	
+		my $id  = $seqs->display_id;
 		my $seq = $seqs->seq;
 		my $desc = $seqs->desc;
 		$cdna->{$id} = uc($seq);

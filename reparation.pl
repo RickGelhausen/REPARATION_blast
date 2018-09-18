@@ -516,10 +516,6 @@ sub check_working_dir {
 	my $work_dir = $_[0];
 	my $tmp_dir;
 
-	my @months = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
-	my @days = qw(Sun Mon Tue Wed Thu Fri Sat Sun);
-	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
-
 	if ($work_dir) {
 		$tmp_dir = $work_dir."/tmp";
 		if (!-d $work_dir) {
