@@ -8,7 +8,7 @@
 ##	it under the terms of the GNU General Public License as published by
 ##	the Free Software Foundation, either version 3 of the License, or
 ##	(at your option) any later version.
-##	
+##
 ##	This program is distributed in the hope that it will be useful,
 ##	but WITHOUT ANY WARRANTY; without even the implied warranty of
 ##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -27,7 +27,7 @@ import re
 
 """
 
-Generate Ribo-seq occupancy from sam alignment file 
+Generate Ribo-seq occupancy from sam alignment file
 chromosome,start,strand,reads
 
 """
@@ -35,7 +35,7 @@ chromosome,start,strand,reads
 def split_cigar(cigar):
 	# function to parse CIGAR string (3M1I3M1D5M) from sam file
     # Seperate CIGAR pattern into a list of list [[code,length], .... [code,length]]
-	
+
     cigar_pat = re.compile(r"\d+[MIDNSHP=X]{1}")
     cigar_list = []
 
@@ -65,7 +65,7 @@ def process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outpu
             if not (line.startswith('#') or line.startswith('length') or line.startswith('default')):
                 fields = line.split()
                 offset[str(fields[0])] = int(fields[1])
-                
+
             line = inFile.readline()
         # end offset file processing
 
@@ -73,7 +73,7 @@ def process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outpu
     line = inFile.readline()
     while line != '':
         if not (line.startswith('@')):
-            fields = line.split()
+            fields = line.split("\t")
             read_name = str(fields[0])   # Read name;
             bit_flag = str(fields[1])   # FLAG;
             chromosome = str(fields[2])   # chromosome
@@ -252,5 +252,3 @@ if __name__=='__main__':
     inFile_offset = str(sys.argv[10])	# plastid estimated offset files
 
     process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outputFileAS,occupancyFile,prefix_S,prefix_AS,inFile_offset)
-
-
