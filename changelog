@@ -1,4 +1,12 @@
 -*-change-log-*-
+1.0.5 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 10. September 2018
+	* Added missing tabulator symbol in Ribo_seq_occupancy.py
+1.0.4 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 10. September 2018
+	* Added output logs for prodigal (expect prodigal to be installed)
+1.0.3 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 12. September 2018
+	* Added missing option to set threads for blast
+1.0.2 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 12. September 2018
+	* Added help output and option to specify output folder name
 1.0.1 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 10. September 2018
 	* Added version output option and changelog
 1.0.0 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 5. September 2018
