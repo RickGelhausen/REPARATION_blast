@@ -207,6 +207,13 @@ sub generate_prodigal_ORFs {
 	my $search = `which prodigal 2>&1`;
 	chomp($search);
 
+	my $tmp_dir = $work_dir."/tmp";
+	if (-d $tmp_dir) {
+			print "Temporary folder $tmp_dir already created.\n";
+	} else {
+			print "Creating temporary folder $tmp_dir.\n";
+			system("mkdir -p $tmp_dir");
+	}
 	my $logs_dir = $work_dir."/logs";
 	system("mkdir -p $logs_dir");
 

@@ -102,6 +102,7 @@ my $genetic_code = 11;		# the genetic code [1-25] that determines the allowed st
 my $seedBYpass = "N";       # Bypass Shine-Dalgarno trainer and force a full motif scan (default = N(o)). Valid only for -pg 1
 my $score = 0.5;           # Random forest classifier threshold to classify ORF as protein copding (defualt is 0.5).
 my $output_folder = "reparation"; # Name of the output folder for the results.
+my $bam_file = $work_dir."/tmp/ribo_bam.bam"; # Precomputed bam file, avoids time-consuming conversion from sam to bam.
 
 # Output files
 my $bedgraphS;
@@ -149,6 +150,7 @@ GetOptions(
   'score=f'=>\$score,
 	'out=s'=>\$output_folder,
 	'threads=i'=>\$threads,
+	'bam=s'=>\$bam_file,
 	'h|help|?'=>\$help
 ) or pod2usage(-verbose => 0);
 pod2usage(-verbose => 1) if $help;
@@ -454,16 +456,30 @@ sub generate_p_site {
 
     # temporary files
     my $run_name = $work_dir."/tmp/plastid";
-    my $bam = $work_dir."/tmp/ribo_bam.bam";
-    my $sort_tmp_file = $work_dir."/tmp/check_sort.txt";
 
-    my $cmd_sam2bam = "samtools view -bS $sam | samtools sort -o $bam";
-    system($cmd_sam2bam) == 0
-        or die ("Error running samtools. Please ensure the samtools is properly installed\n");
+		my $sort_tmp_file = $work_dir."/tmp/check_sort.txt";
 
-    my $command_index = "samtools index ".$bam;
-    system($command_index) == 0
-        or die ("Error running samtools. Please ensure the samtools is properly installed\n");
+		# Check whether the given bam file exists and is non-empty, else compute it
+		if ((!-f $bam_file) || (-z $bam_file)) {
+				print "BAM file empty or non-existant. Converting from SAM file...\n";
+				my $bam_file = $work_dir."/tmp/ribo_bam.bam";
+
+				my $cmd_sam2bam = "samtools view -bS $sam | samtools sort -o $bam";
+		    system($cmd_sam2bam) == 0
+		        or die ("Error running samtools. Please ensure the samtools is properly installed\n");
+		} else {
+				print "BAM file located. Advancing...\n";
+		}
+
+		# Check for index file
+		if ((!-f $bam_file.".bai") || (-z $bam_file.".bai")) {
+				print "No BAM index found. Computing... \n";
+				my $command_index = "samtools index ".$bam_file;
+				system($command_index) == 0
+						or die ("Error running samtools. Please ensure the samtools is properly installed\n");
+		} else {
+				print "BAM index file located. Advancing...\n";
+		}
 
     #Build command
     my $command_meta = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf." 2> /dev/null";
@@ -473,7 +489,7 @@ sub generate_p_site {
 
     #Build command
     my $psitefile = $run_name."_rois.txt";
-    my $command_psite = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam." 2> /dev/null";
+    my $command_psite = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam_file." 2> /dev/null";
     print "$command_psite\n";
     system($command_psite)  == 0
         or die ("Error running psite. Please ensure the Plastid tool is properly installed\n");
@@ -642,7 +658,8 @@ Shine dalgarno sequence (default = GGAGG). The shine dalgarno sequence used for 
 Use ribosome binding site (RBS) energy in the open reading frame prediction (Y = use RBS energy (default), N = donot use RBS engergy)
 
 =item B<-id>
-
+Online-Ticket
+UNI STUTT
 Minimum identify score for BLAST protein sequence search (default = 0.75)
 
 =item B<-ev>
@@ -676,6 +693,10 @@ Flag to determine if prodigal should bypass Shine-Dalgarno trainer and force a f
 =item B<-score>
 
 Random forest classification probability score threshold to define as ORF are protein coding, the minimum  (defualt is 0.5)
+
+=item B<-bam>
+
+Specify a precomputed bam file, in order to skip the time-consuming sam to bam conversion step.
 
 =back
 
