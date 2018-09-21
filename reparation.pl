@@ -31,7 +31,7 @@ use Cwd;
 use File::stat;
 use File::Basename;
 
-$main::VERSION = "1.0.1";
+$main::VERSION = "1.0.6";
 my $startRun = time();	# track processing time
 
 
@@ -102,10 +102,7 @@ my $genetic_code = 11;		# the genetic code [1-25] that determines the allowed st
 my $seedBYpass = "N";       # Bypass Shine-Dalgarno trainer and force a full motif scan (default = N(o)). Valid only for -pg 1
 my $score = 0.5;           # Random forest classifier threshold to classify ORF as protein copding (defualt is 0.5).
 my $output_folder = "reparation"; # Name of the output folder for the results.
-
-# Check if working directory exist
-my ($work_dir, $tmp_dir) = check_working_dir($workdir);
-my $bam_file = $work_dir."/tmp/ribo_bam.bam"; # Precomputed bam file, avoids time-consuming conversion from sam to bam.
+my $bam_file; # Precomputed bam file, avoids time-consuming conversion from sam to bam.
 
 # Output files
 my $bedgraphS;
@@ -330,6 +327,8 @@ foreach my $codon(@ncodons) {
 	$negative_codons->{$codon} = 1;
 }
 
+# Check if working directory exist
+my ($work_dir, $tmp_dir) = check_working_dir($workdir);
 
 # append work_dir to output files
 unless($bedgraphS) {$bedgraphS = $work_dir."/".$experiment."Ribo-seq_Sense_".$occupancy.".bedgraph";}
