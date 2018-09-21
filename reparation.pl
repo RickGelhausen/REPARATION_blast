@@ -102,6 +102,9 @@ my $genetic_code = 11;		# the genetic code [1-25] that determines the allowed st
 my $seedBYpass = "N";       # Bypass Shine-Dalgarno trainer and force a full motif scan (default = N(o)). Valid only for -pg 1
 my $score = 0.5;           # Random forest classifier threshold to classify ORF as protein copding (defualt is 0.5).
 my $output_folder = "reparation"; # Name of the output folder for the results.
+
+# Check if working directory exist
+my ($work_dir, $tmp_dir) = check_working_dir($workdir);
 my $bam_file = $work_dir."/tmp/ribo_bam.bam"; # Precomputed bam file, avoids time-consuming conversion from sam to bam.
 
 # Output files
@@ -328,10 +331,6 @@ foreach my $codon(@ncodons) {
 }
 
 
-# Check if working directory exist
-my ($work_dir, $tmp_dir) = check_working_dir($workdir);
-
-
 # append work_dir to output files
 unless($bedgraphS) {$bedgraphS = $work_dir."/".$experiment."Ribo-seq_Sense_".$occupancy.".bedgraph";}
 unless($bedgraphAS) {$bedgraphAS = $work_dir."/".$experiment."Ribo-seq_AntiSense_".$occupancy.".bedgraph";}
@@ -464,7 +463,7 @@ sub generate_p_site {
 				print "BAM file empty or non-existant. Converting from SAM file...\n";
 				my $bam_file = $work_dir."/tmp/ribo_bam.bam";
 
-				my $cmd_sam2bam = "samtools view -bS $sam | samtools sort -o $bam";
+				my $cmd_sam2bam = "samtools view -bS $sam | samtools sort -o $bam_file";
 		    system($cmd_sam2bam) == 0
 		        or die ("Error running samtools. Please ensure the samtools is properly installed\n");
 		} else {
