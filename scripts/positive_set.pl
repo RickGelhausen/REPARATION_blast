@@ -223,7 +223,7 @@ sub generate_prodigal_ORFs {
   if ($seedBYpass eq "Y") {$prodigal_cmd = $prodigal_cmd." -n"}
 
   system($prodigal_cmd) == 0
-      or die ("Error running prodigal.\n".$!);
+      or die ("Error running prodigal: $! \n");
 
   my $count = 0;
 	my $positive_fasta = $work_dir.'tmp/positive_set.fasta';

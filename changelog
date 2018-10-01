@@ -1,4 +1,7 @@
 -*-change-log-*-
+1.0.6 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 1. Oktober 2018
+	* Added parameter for precomputed bam file
+  * Added detailed error output and logs for more functions
 1.0.5 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 10. September 2018
 	* Added missing tabulator symbol in Ribo_seq_occupancy.py
 1.0.4 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 10. September 2018

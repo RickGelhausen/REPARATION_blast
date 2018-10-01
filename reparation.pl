@@ -102,7 +102,7 @@ my $genetic_code = 11;		# the genetic code [1-25] that determines the allowed st
 my $seedBYpass = "N";       # Bypass Shine-Dalgarno trainer and force a full motif scan (default = N(o)). Valid only for -pg 1
 my $score = 0.5;           # Random forest classifier threshold to classify ORF as protein copding (defualt is 0.5).
 my $output_folder = "reparation"; # Name of the output folder for the results.
-my $bam_file; # Precomputed bam file, avoids time-consuming conversion from sam to bam.
+my $bam_file = ""; # Precomputed bam file, avoids time-consuming conversion from sam to bam.
 
 # Output files
 my $bedgraphS;
@@ -368,7 +368,7 @@ if ($occupancy == 1) {
 	}
 
 	# find p-site offsets
-    $psite_offset_file = generate_p_site($positive_set_gtf,$sam_file,$min_read_len,$max_read_len);
+    $psite_offset_file = generate_p_site($positive_set_gtf,$sam_file,$min_read_len,$max_read_len,$bam_file);
 }
 
 
@@ -446,11 +446,15 @@ timer($startRun);	# Get total Run time
 
 ## Generate metagene and p-site estimates
 sub generate_p_site {
+	  my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
+		my $logs_dir = $work_dir."/logs";
+		system("mkdir -p $logs_dir");
 
     my $genes_gtf = $_[0];
     my $sam = $_[1];
     my $min_l = $_[2];
     my $max_l =$_[3];
+		my $bam_file =$_[4];
 
     # temporary files
     my $run_name = $work_dir."/tmp/plastid";
@@ -460,11 +464,11 @@ sub generate_p_site {
 		# Check whether the given bam file exists and is non-empty, else compute it
 		if ((!-f $bam_file) || (-z $bam_file)) {
 				print "BAM file empty or non-existant. Converting from SAM file...\n";
-				my $bam_file = $work_dir."/tmp/ribo_bam.bam";
+				$bam_file = $work_dir."/tmp/ribo_bam.bam";
 
 				my $cmd_sam2bam = "samtools view -bS $sam | samtools sort -o $bam_file";
 		    system($cmd_sam2bam) == 0
-		        or die ("Error running samtools. Please ensure the samtools is properly installed\n");
+		        or die ("Error running samtools: $! \n");
 		} else {
 				print "BAM file located. Advancing...\n";
 		}
@@ -474,23 +478,25 @@ sub generate_p_site {
 				print "No BAM index found. Computing... \n";
 				my $command_index = "samtools index ".$bam_file;
 				system($command_index) == 0
-						or die ("Error running samtools. Please ensure the samtools is properly installed\n");
+						or die ("Error running samtools: $! \n");
 		} else {
 				print "BAM index file located. Advancing...\n";
 		}
 
+		my $log_metagene = $work_dir."/logs/metagene$min$hour$mday$mon$year.log";
     #Build command
-    my $command_meta = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf." 2> /dev/null";
+    my $command_meta = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf." 2> $log_metagene";
     print "$command_meta\n";
     system($command_meta) == 0
-        or die ("Error running metagene. Please ensure the Plastid tool is properly installed\n");
+        or die ("Error running metagene: $! \n");
 
+		my $log_psite = $work_dir."/logs/psite$min$hour$mday$mon$year.log";
     #Build command
     my $psitefile = $run_name."_rois.txt";
-    my $command_psite = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam_file." 2> /dev/null";
+    my $command_psite = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam_file." 2> $log_psite";
     print "$command_psite\n";
     system($command_psite)  == 0
-        or die ("Error running psite. Please ensure the Plastid tool is properly installed\n");
+        or die ("Error running psite: $! \n");
 
     my $psite_off_output = $work_dir."/".$experiment."p_site_offsets.txt";
     system("cp ".$run_name."_p_offsets.txt $psite_off_output");
@@ -511,13 +517,13 @@ sub check_if_pgm_exist {
 	if ($search =~ /^which: no/) {
 		if ($pgm eq "prodigal") {
 			unless (-x $script_dir."/bin/prodigal") {	# if prodigal not install
-				print "Could not locate ' $pgm '. Please ensure the program is installed or present in the script directory and it is executable\n";
+				print "Could not locate ' $pgm '. Please ensure the program is installed or present in the script directory and it is executable: $! \n";
 				exit(1);
 			}
 		} elsif ($pgm eq "glimmer3") {
             print "$script_dir"."/bin/glimmer/glimmer3\n";
 			unless (-e $script_dir."/bin/glimmer/glimmer3" and -e $script_dir."/bin/glimmer/build-icm") {
-				print "Could not locate ' $pgm '. Please ensure the program is installed or present in the script directory and it is executable\n";
+				print "Could not locate ' $pgm '. Please ensure the program is installed or present in the script directory and it is executable: $! \n";
 				exit(1);
 			}
 		}
