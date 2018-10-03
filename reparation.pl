@@ -490,18 +490,24 @@ sub generate_p_site {
     system($command_meta) == 0
         or die ("Error running metagene: $! \n");
 
-		my $log_psite = $work_dir."/logs/psite$min$hour$mday$mon$year.log";
+    my $log_psite = $work_dir."/logs/psite$min$hour$mday$mon$year.log";
     #Build command
     my $psitefile = $run_name."_rois.txt";
-    my $command_psite = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam_file." 2> $log_psite";
+    my $command_psite = "psite ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam_file." 2> $log_psite";
     print "$command_psite\n";
-    system($command_psite)  == 0
-        or die ("Error running psite: $! \n");
-
     my $psite_off_output = $work_dir."/".$experiment."p_site_offsets.txt";
-    system("cp ".$run_name."_p_offsets.txt $psite_off_output");
-    system("cp ".$run_name."_p_offsets.png ".$plastid_image);
-
+    my $offsetdefaults = "length\tp_offset\n22\t19\n23\t20\n24\t21\n25\t22\n26\t23\n27\t24\n28\t13\n29\t13\n30\t13\n31\t13\n32\t13\n33\t13\n34\t13\n35\t13\n36\t13\n37\t13\n38\t21\n39\t22\n40\t23\ndefault\t13\n";
+    my $offsetfile = $run_name. "_p_offsets.txt";
+    unless(system($command_psite)  == 0){
+        open( my $fh, '>', $offsetfile) or die "Could not open file $offsetfile $!";
+        print $fh $offsetdefaults;
+        close $fh;
+        system("touch " . $run_name . "_p_offsets.png;");
+    }
+        #or die ("Error running psite: $! \n");
+    print "touch " . $run_name. "_p_offsets.txt; touch " . $run_name . "_p_offsets.png;";
+    system("cp " . $run_name . "_p_offsets.txt $psite_off_output") or print ("Error copying psite_off_output: " . $run_name . "_p_offsets.txt $psite_off_output $!");
+    system("cp " . $run_name . "_p_offsets.png $plastid_image") or print ("Error copying p_offset.png: " . $run_name . "_p_offsets.png $plastid_image $!");
     return $psite_off_output;
 }
 
