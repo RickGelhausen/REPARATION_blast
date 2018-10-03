@@ -1,4 +1,6 @@
 -*-change-log-*-
+1.0.7 Florian Eggenhofer <egg@informatik.uni-freiburg.de> 3. October 2018
+	* Fix for failing offset computation
 1.0.6 Rick Gelhausen <gelhausr@informatik.uni-freiburg.de> 1. Oktober 2018
 	* Added parameter for precomputed bam file
   * Added detailed error output and logs for more functions
