@@ -31,7 +31,7 @@ use Cwd;
 use File::stat;
 use File::Basename;
 
-$main::VERSION = "1.0.6";
+$main::VERSION = "1.0.7";
 my $startRun = time();	# track processing time
 
 
