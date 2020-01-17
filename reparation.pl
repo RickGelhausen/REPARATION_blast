@@ -36,7 +36,7 @@ my $startRun = time();	# track processing time
 
 
 ########################
-##	Usage: ./reparation.pl -sam riboseq_alignment_files_sam_format -g bacteria_genome_fasta_file -sdir scripts_directory -db curated_protein_db(fasta)
+##	Usage: ./reparation.pl -bam riboseq_alignment_files_bam_format -g bacteria_genome_fasta_file -sdir scripts_directory -db curated_protein_db(fasta)
 ########################
 
 #----------------------------------------------------
@@ -71,7 +71,7 @@ my %translationHash =
 
 # Mandatory variables
 my $genome;				    # Prokaryotic genome file in fasta format
-my $sam_file;				# Ribosome profiling alignment file [sam formate]
+my $bam_file;				# Ribosome profiling alignment file [bam format]
 my $blastdb;				# protein blast database in fasta format
 my $dirname = dirname(__FILE__);	# get tool directory for default script directory
 my $script_dir = $dirname."/scripts";	# Directory where the script files are stored (defaults to the current directory)
@@ -102,7 +102,6 @@ my $genetic_code = 11;		# the genetic code [1-25] that determines the allowed st
 my $seedBYpass = "N";       # Bypass Shine-Dalgarno trainer and force a full motif scan (default = N(o)). Valid only for -pg 1
 my $score = 0.5;           # Random forest classifier threshold to classify ORF as protein copding (defualt is 0.5).
 my $output_folder = "reparation"; # Name of the output folder for the results.
-my $bam_file = ""; # Precomputed bam file, avoids time-consuming conversion from sam to bam.
 
 # Output files
 my $bedgraphS;
@@ -117,7 +116,7 @@ my $help = 0;
 # Get command line arguments
 GetOptions(
 	'g=s'=>\$genome,
-	'sam=s'=>\$sam_file,
+	'bam=s'=>\$bam_file,
 	'db=s'=>\$blastdb,
 	'sdir=s'=>\$script_dir,
 	'wdir=s'=>\$workdir,
@@ -150,7 +149,6 @@ GetOptions(
   'score=f'=>\$score,
 	'out=s'=>\$output_folder,
 	'threads=i'=>\$threads,
-	'bam=s'=>\$bam_file,
 	'h|help|?'=>\$help
 ) or pod2usage(-verbose => 0);
 pod2usage(-verbose => 1) if $help;
@@ -162,7 +160,7 @@ pod2usage(-verbose => 1) if $help;
 # check mandatory variables
 my %params = (
 	g=>$genome,
-	sam=>$sam_file,
+	bam=>$bam_file,
 	db=>$blastdb,
 	sdir=>$script_dir
 );
@@ -178,8 +176,8 @@ unless (-e $genome) {
     exit(1);
 }
 
-unless (-e $sam_file) {
-    print "'$sam_file' is not a file. Please ensure the file exist\n";
+unless (-e $bam_file) {
+    print "'$bam_file' is not a file. Please ensure the file exist\n";
     exit(1);
 }
 
@@ -275,6 +273,16 @@ if ($script_dir) {
 	exit(1);
 }
 
+# Generate bam index files
+# Check for index file
+if ((!-f $bam_file.".bai") || (-z $bam_file.".bai")) {
+		print "No BAM index found. Computing... \n";
+		my $command_index = "samtools index ".$bam_file;
+		system($command_index) == 0
+				or die ("Error running samtools: $! \n");
+} else {
+		print "BAM index file located. Advancing...\n";
+}
 
 # Prepare input variables
 $experiment = ($experiment) ? $experiment."_": "";
@@ -368,7 +376,7 @@ if ($occupancy == 1) {
 	}
 
 	# find p-site offsets
-    $psite_offset_file = generate_p_site($positive_set_gtf,$sam_file,$min_read_len,$max_read_len,$bam_file);
+    $psite_offset_file = generate_p_site($positive_set_gtf,$bam_file,$min_read_len,$max_read_len,$bam_file);
 }
 
 
@@ -377,7 +385,7 @@ print "Generating ribosome occupancy file..\n";
 my $occupancyFile = $work_dir."/".$experiment."Ribo-seq_".$occupancy."_occupancy.txt";
 my $bedgraphS_prefix = $experiment."Ribo-seq_Sense_".$occupancy;
 my $bedgraphAS_prefix = $experiment."Ribo-seq_AntiSense_".$occupancy;
-my $cmd_occupancy = "python ".$script_dir."/Ribo_seq_occupancy.py $sam_file $occupancy $min_read_len $max_read_len $bedgraphS $bedgraphAS $occupancyFile $bedgraphS_prefix $bedgraphAS_prefix $psite_offset_file";
+my $cmd_occupancy = "python ".$script_dir."/Ribo_seq_occupancy.py $bam_file $occupancy $min_read_len $max_read_len $bedgraphS $bedgraphAS $occupancyFile $bedgraphS_prefix $bedgraphAS_prefix $psite_offset_file";
 print "$cmd_occupancy\n\n";
 system($cmd_occupancy);
 unless (-e $occupancyFile) {
@@ -451,7 +459,7 @@ sub generate_p_site {
 		system("mkdir -p $logs_dir");
 
     my $genes_gtf = $_[0];
-    my $sam = $_[1];
+    my $bam = $_[1];
     my $min_l = $_[2];
     my $max_l =$_[3];
 		my $bam_file =$_[4];
@@ -460,28 +468,6 @@ sub generate_p_site {
     my $run_name = $work_dir."/tmp/plastid";
 
 		my $sort_tmp_file = $work_dir."/tmp/check_sort.txt";
-
-		# Check whether the given bam file exists and is non-empty, else compute it
-		if ((!-f $bam_file) || (-z $bam_file)) {
-				print "BAM file empty or non-existant. Converting from SAM file...\n";
-				$bam_file = $work_dir."/tmp/ribo_bam.bam";
-
-				my $cmd_sam2bam = "samtools view -bS $sam | samtools sort -o $bam_file";
-		    system($cmd_sam2bam) == 0
-		        or die ("Error running samtools: $! \n");
-		} else {
-				print "BAM file located. Advancing...\n";
-		}
-
-		# Check for index file
-		if ((!-f $bam_file.".bai") || (-z $bam_file.".bai")) {
-				print "No BAM index found. Computing... \n";
-				my $command_index = "samtools index ".$bam_file;
-				system($command_index) == 0
-						or die ("Error running samtools: $! \n");
-		} else {
-				print "BAM index file located. Advancing...\n";
-		}
 
 		my $log_metagene = $work_dir."/logs/metagene$min$hour$mday$mon$year.log";
     #Build command
@@ -589,7 +575,7 @@ reparation - Ribosome Profiling Assisted (Re-)Annotation of Bacterial genomes.
 
 =head1 SYNOPSIS
 
-reparation.pl [options] -sam riboseq_alignment_files_sam_format -g bacteria_genome_fasta_file -sdir scripts_directory -db curated_protein_db(fasta)
+reparation.pl [options] -bam riboseq_alignment_files_bam_format -g bacteria_genome_fasta_file -sdir scripts_directory -db curated_protein_db(fasta)
 
 =head1 OPTIONS
 
@@ -597,9 +583,9 @@ reparation.pl [options] -sam riboseq_alignment_files_sam_format -g bacteria_geno
 
 =head2 Mandatory
 
-=item B<-sam>
+=item B<-bam>
 
-Ribosome alignment file (sam)
+Ribosome alignment file (bam)
 
 =item B<-g>
 
@@ -703,10 +689,6 @@ Flag to determine if prodigal should bypass Shine-Dalgarno trainer and force a f
 =item B<-score>
 
 Random forest classification probability score threshold to define as ORF are protein coding, the minimum  (defualt is 0.5)
-
-=item B<-bam>
-
-Specify a precomputed bam file, in order to skip the time-consuming sam to bam conversion step.
 
 =back
 

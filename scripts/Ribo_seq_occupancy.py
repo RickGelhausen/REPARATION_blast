@@ -23,7 +23,7 @@
 
 import sys
 import re
-
+import pysam
 
 """
 
@@ -69,141 +69,130 @@ def process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outpu
             line = inFile.readline()
         # end offset file processing
 
-    inFile = open(inputFile, 'r')
-    line = inFile.readline()
-    while line != '':
-        if not (line.startswith('@')):
-            fields = line.split("\t")
-            read_name = str(fields[0])   # Read name;
-            bit_flag = str(fields[1])   # FLAG;
-            chromosome = str(fields[2])   # chromosome
-            genomic_position = int(fields[3])   # left-most position
-            col5 = str(fields[4])   # Map Quality
-            cigar = str(fields[5])   # CIGAR string [only M and S observed in bacteria]
-            col7 = str(fields[6])   # Reference sequence name of the primary alignment of the NEXT read in the template
-            col8 = str(fields[7])   # Position of the primary alignment of the NEXT read in the template
-            col9 = str(fields[8])   # signed observed Template LENgth
-            col10 = str(fields[9])  # footprint sequence
+    inFile = pysam.AlignmentFile(inputFile)
+    for read in inFile.fetch():
+        bit_flag = int(read.flag)   # FLAG;
+        chromosome = read.reference_name  # chromosome
+        genomic_position = read.pos   # left-most position
+        cigar = read.cigarstring   # CIGAR string [only M and S observed in bacteria]
 
-            length = len(col10)     # footprint length
+        length = len(read.query_sequence)     # footprint length
 
-            if (int(bit_flag) == 4):	# skip unmapped read
-                count_unmapped += 1
+        if (int(bit_flag) == 4):	# skip unmapped read
+            count_unmapped += 1
 
-            elif (int(bit_flag) == 0):	# for plus strand
+        elif (int(bit_flag) == 0):	# for plus strand
 
-                five_prime_end = genomic_position
-                three_prime_end = five_prime_end + length - 1
+            five_prime_end = genomic_position
+            three_prime_end = five_prime_end + length - 1
 
-                # check for soft clipping in CIGAR
-                if "S" in cigar:
-                    cigar_list = split_cigar(cigar)
-                    flag = 0    # flag to check whether to trim at 5' or 3'
-                    clip_3 = 0  # flag to check if there has been any clipping at the 3'end
-                    for operation in cigar_list:
-                        symbol = operation[0]
-                        count = operation[1]
+            # check for soft clipping in CIGAR
+            if "S" in cigar:
+                cigar_list = split_cigar(cigar)
+                flag = 0    # flag to check whether to trim at 5' or 3'
+                clip_3 = 0  # flag to check if there has been any clipping at the 3'end
+                for operation in cigar_list:
+                    symbol = operation[0]
+                    count = operation[1]
 
-                        if symbol == "M":
-                            flag = 1
+                    if symbol == "M":
+                        flag = 1
 
-                        if flag == 0 and symbol == "S":   # if first Soft clipping operation then clip at the 5'
-                            five_prime_end = genomic_position + count
-                            length = length - count
+                    if flag == 0 and symbol == "S":   # if first Soft clipping operation then clip at the 5'
+                        five_prime_end = genomic_position + count
+                        length = length - count
 
-                        elif flag == 1 and symbol == "S":   # if second soft clipping operation then clip at the 3'
-                            length = length - count
-                            three_prime_end = five_prime_end + length - 1
-                            clip_3 = 1
-
-                    if clip_3 == 0:
+                    elif flag == 1 and symbol == "S":   # if second soft clipping operation then clip at the 3'
+                        length = length - count
                         three_prime_end = five_prime_end + length - 1
+                        clip_3 = 1
 
-                count_reads += 1
-                if int(min_read_len) <= length <= int(max_read_len):
+                if clip_3 == 0:
+                    three_prime_end = five_prime_end + length - 1
 
-                    if occupancy == 3:
-                        ribo_position = three_prime_end
-                    elif occupancy == 5:
-                        ribo_position = five_prime_end
-                    elif occupancy == 1:
-                        ribo_position = five_prime_end + offset[str(length)]
+            count_reads += 1
+            if int(min_read_len) <= length <= int(max_read_len):
 
-                    #print str(five_prime_end) + " processed " + str(ribo_position)
+                if occupancy == 3:
+                    ribo_position = three_prime_end
+                elif occupancy == 5:
+                    ribo_position = five_prime_end
+                elif occupancy == 1:
+                    ribo_position = five_prime_end + offset[str(length)]
 
-                    strand = '+'
-                    if chromosome in read_table:
-                        if ribo_position in read_table[chromosome]:
-                            if strand in read_table[chromosome][ribo_position]:
-                                read_table[chromosome][ribo_position][strand] += 1
-                            else:
-                                read_table[chromosome][ribo_position][strand] = 1
+                #print str(five_prime_end) + " processed " + str(ribo_position)
+
+                strand = '+'
+                if chromosome in read_table:
+                    if ribo_position in read_table[chromosome]:
+                        if strand in read_table[chromosome][ribo_position]:
+                            read_table[chromosome][ribo_position][strand] += 1
                         else:
-                            read_table[chromosome][ribo_position] = {}
                             read_table[chromosome][ribo_position][strand] = 1
                     else:
-                        read_table[chromosome] = {}
                         read_table[chromosome][ribo_position] = {}
                         read_table[chromosome][ribo_position][strand] = 1
+                else:
+                    read_table[chromosome] = {}
+                    read_table[chromosome][ribo_position] = {}
+                    read_table[chromosome][ribo_position][strand] = 1
 
-            elif (int(bit_flag) == 16):		# for reverse strand
+        elif (int(bit_flag) == 16):		# for reverse strand
 
-                three_prime_end = genomic_position         # 3' end is POS in sam file for the reverse strand
-                five_prime_end = three_prime_end + length - 1
+            three_prime_end = genomic_position         # 3' end is POS in sam file for the reverse strand
+            five_prime_end = three_prime_end + length - 1
 
-                # check for soft clipping in CIGAR
-                if "S" in cigar:
-                    cigar_list = split_cigar(cigar)
+            # check for soft clipping in CIGAR
+            if "S" in cigar:
+                cigar_list = split_cigar(cigar)
 
-                    flag = 0    # flag to check whether to trim at 5' or 3'
-                    clip_5 = 0  # flag to check if there has been any clipping at the 5'end
-                    for operation in cigar_list:
-                        symbol = operation[0]
-                        count = operation[1]
+                flag = 0    # flag to check whether to trim at 5' or 3'
+                clip_5 = 0  # flag to check if there has been any clipping at the 5'end
+                for operation in cigar_list:
+                    symbol = operation[0]
+                    count = operation[1]
 
-                        if symbol == "M":
-                            flag = 1
+                    if symbol == "M":
+                        flag = 1
 
-                        if flag == 0 and symbol == "S":   # if first Soft clipping operation then clip at the 3'
-                            three_prime_end = genomic_position + count
-                            length = length - count
+                    if flag == 0 and symbol == "S":   # if first Soft clipping operation then clip at the 3'
+                        three_prime_end = genomic_position + count
+                        length = length - count
 
-                        if flag == 1 and symbol == "S":   # if second soft clipping operation then clip at the 5'
-                            length = length - count
-                            five_prime_end = three_prime_end + length - 1
-                            clip_5 = 1
-
-                    if clip_5 == 0: # no soft clipping has been performed at the 5' end
+                    if flag == 1 and symbol == "S":   # if second soft clipping operation then clip at the 5'
+                        length = length - count
                         five_prime_end = three_prime_end + length - 1
+                        clip_5 = 1
 
-                count_reads += 1
-                if int(min_read_len) <= length <= int(max_read_len):
-                    if occupancy == 3:
-                        ribo_position = three_prime_end
-                    elif occupancy == 5:
-                        ribo_position = five_prime_end
-                    elif occupancy == 1:
-                        ribo_position = five_prime_end - offset[str(length)]
+                if clip_5 == 0: # no soft clipping has been performed at the 5' end
+                    five_prime_end = three_prime_end + length - 1
 
-                    strand = '-'
-                    if chromosome in read_table:
-                        if ribo_position in read_table[chromosome]:
-                            if  strand in read_table[chromosome][ribo_position]:
-                                read_table[chromosome][ribo_position][strand] += 1
-                            else:
-                                read_table[chromosome][ribo_position][strand] = 1
+            count_reads += 1
+            if int(min_read_len) <= length <= int(max_read_len):
+                if occupancy == 3:
+                    ribo_position = three_prime_end
+                elif occupancy == 5:
+                    ribo_position = five_prime_end
+                elif occupancy == 1:
+                    ribo_position = five_prime_end - offset[str(length)]
+
+                strand = '-'
+                if chromosome in read_table:
+                    if ribo_position in read_table[chromosome]:
+                        if  strand in read_table[chromosome][ribo_position]:
+                            read_table[chromosome][ribo_position][strand] += 1
                         else:
-                            read_table[chromosome][ribo_position] = {}
                             read_table[chromosome][ribo_position][strand] = 1
                     else:
-                        read_table[chromosome] = {}
                         read_table[chromosome][ribo_position] = {}
                         read_table[chromosome][ribo_position][strand] = 1
+                else:
+                    read_table[chromosome] = {}
+                    read_table[chromosome][ribo_position] = {}
+                    read_table[chromosome][ribo_position][strand] = 1
 
-            else:		# for reverse strand
-                count_unmapped += 1
-
-        line = inFile.readline()
+        else:		# for reverse strand
+            count_unmapped += 1
 
     print("Total number of mappable reads " + str(count_reads))
     print("Total number of unmapped reads " + str(count_unmapped))
