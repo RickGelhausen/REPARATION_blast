@@ -73,7 +73,7 @@ def process_ribo(inputFile,occupancy,min_read_len,max_read_len,outputFileS,outpu
     for read in inFile.fetch():
         bit_flag = int(read.flag)   # FLAG;
         chromosome = read.reference_name  # chromosome
-        genomic_position = read.pos   # left-most position
+        genomic_position = read.pos+1   # left-most position
         cigar = read.cigarstring   # CIGAR string [only M and S observed in bacteria]
 
         length = len(read.query_sequence)     # footprint length
